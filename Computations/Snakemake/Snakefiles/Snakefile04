@@ -1,0 +1,19 @@
+IDS, = glob_wildcards("input/{id,\w+}")
+
+rule all:
+    input: expand("output/{id}", id=IDS)
+
+rule find_letters:
+    input: "input/{id}"
+    output: counts="output/{id}"
+    run:
+        for f in input:
+            content = ""
+            with open(f) as inf:
+                for line in inf:
+                    content += line
+            symbols = list(set(content))
+            symbols.sort()
+            with open(output.counts, "w") as ouf:
+                for symbol in symbols:
+                    ouf.write(symbol+": "+str(content.count(symbol))+"\n")

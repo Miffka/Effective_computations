@@ -1,0 +1,14 @@
+#yupikaee, motherfucker!!!
+
+rule all:
+    input:
+        "output/output"
+
+rule count_words:
+    input:
+        "input/input"
+    output:
+        "output/output"
+    shell:
+        "wc -w {input} | cut -d' ' -f1 > {output}"
+

@@ -1,0 +1,32 @@
+Второй модуль третьей недели - первые шаги в сторону пайплайнов.
+
+
+В CWL есть обычно 3 класса документов:
+1) Workflow - взаимосвязь между этапами пайплайнов, формирует ациклически направленный граф.
+Схема:
+паттерн+файлы -> grep -> wc -> файл
+CWL позволяет формировать вложенные структуры, т.е. этапом Workflow может служить другой Workflow. Однако чаще степом является CommandLineTool - абстракция над продуктом, запускаемым в командной строке.
+Третий класс - это ExpressionTool, мини-программа на JavaScript. 
+
+Синтаксис: json или yaml.
+
+
+CommandLineTool - подробности.
+command1 file1.ext file2.ext
+command2 -i file1.ext -o file2.ext
+command3 in=file1.ext out=file2.ext
+command4 subcommand file1.ext file2.ext
+command5 < file1.ext > file2.ext
+
+Cat in CommandLineTool
+
+Указываются версия (необязательно), класс документа (обязательно), входы и выходы, а также в этом пайплайне мы указали связь стандартного выхода с конечным файлом через две команды: 'stdout: ...' и 'outputBinding: glob: ...'.
+
+
+Основные типы данных для CommandLineTool
+null, boolean, int, long, float, double, string, File, Directory
+А еще есть тип array!
+
+Необходимо следить, к чему относятся параметры вывода (inputBinding) - к каждому элементу или к массиву в целом.
+
+

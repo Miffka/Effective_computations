@@ -1,0 +1,112 @@
+IDS, = glob_wildcards("input/{id}.bam")
+#REFIDS, = glob_wildcards("data/{refid}.fa")
+#docker run -it --rm -v $(pwd)/Snakefile:/mnt/Snakefile parseq/stepik-variant-calling-tools
+#virtualenv --python=python3.4 venv ; . venv/bin/activate ; pip install 'snakemake<=3.13' ; cp input/170172.bam input/170173.bam; snakemake
+REFERENCE = "data/22"
+REFERENCE_FA = REFERENCE+".fa"
+REFERENCE_FA_FAI = REFERENCE+".fa.fai"
+REFERENCE_DICT = REFERENCE+".dict"
+
+rule all:
+    input: expand("output/reports/{id}", id=IDS)
+
+# As an input, the list of files needed, with the same id, and different vc
+rule report:
+    input: 
+        "output/counts/{id}_fb.txt", "output/counts/{id}_fbhc.txt", "output/counts/{id}_fbst.txt", "output/counts/{id}_hc.txt", "output/counts/{id}_hcst.txt", "output/counts/{id}_st.txt"
+    output: "output/reports/{id}"
+    run:
+        inputs=[]
+        for file in input:
+            with open(file) as inf:
+                inputs.append(inf.readline().strip())
+        with open(output[0], "w") as ouf:
+            ouf.write(inputs[0]+"\t"+inputs[1]+"\t"+inputs[2]+"\n")
+            ouf.write(inputs[3]+"\t"+"None"+"\t"+inputs[4]+"\n")
+            ouf.write(inputs[5]+"\t"+"None"+"\t"+"None")
+
+#Or probably this is the most hard rule of all
+rule count_individual_variants:
+    input: "output/calls/cp/{vcaller}/{id}.vcf"
+    output: temp("output/tmp/{vcaller}_{id}"), "output/counts/{id}_{vcaller}.txt"
+    run: 
+        shell("vcftools --vcf {input} 2>&1 | grep 'After filtering' | tac > {output[0]}")
+        with open(output[0]) as inf:
+            f=[i for i in inf.readline().strip().split()]
+        with open(output[1], "w") as ouf:
+            ouf.write(f[3])
+
+rule count_intersected_variants:
+    input: "output/vc_commons/{vcallers}/{id}.vcf.gz"
+    output: temp("output/tmp/{vcallers}_{id}"), "output/counts/{id}_{vcallers}.txt"
+    run: 
+        shell("vcftools --gzvcf {input} 2>&1 | grep 'After filtering' | tac > {output[0]}")
+        with open(output[0]) as inf:
+            f=[i for i in inf.readline().strip().split()]
+        with open(output[1], "w") as ouf:
+            ouf.write(f[3])
+
+# The most exhausting rule, don't know how to enumerate all files in the right way, so just make three rules
+
+rule intersect_hc_st_vcf:
+    input: 
+        "output/calls/hc/{id}.vcf.gz", "output/calls/st/{id}.vcf.gz"
+    output: "output/vc_commons/hcst/{id}.vcf.gz"
+    shell:
+        "vcf-isec -f -n +2 {input[0]} {input[1]} | bgzip -c > {output}"
+
+rule intersect_fb_st_vcf:
+    input: 
+        "output/calls/fb/{id}.vcf.gz", "output/calls/st/{id}.vcf.gz"
+    output: "output/vc_commons/fbst/{id}.vcf.gz"
+    shell:
+        "vcf-isec -f -n +2 {input[0]} {input[1]} | bgzip -c > {output}"
+
+rule intersect_fb_hc_vcf:
+    input: 
+        "output/calls/fb/{id}.vcf.gz", "output/calls/hc/{id}.vcf.gz"
+    output: "output/vc_commons/fbhc/{id}.vcf.gz"
+    shell:
+        "vcf-isec -f -n +2 {input[0]} {input[1]} | bgzip -c > {output}"
+
+rule index_vcf:
+    input: "output/calls/{vcaller}/{id}.vcf"
+    output: 
+        "output/calls/{vcaller}/{id}.vcf.gz", "output/calls/cp/{vcaller}/{id}.vcf"
+    shell: 
+        "cp {input} {output[1]} ; "
+        "bgzip {input} ; "
+        "tabix -p vcf {output[0]}"
+
+rule vc_samtools:
+    input:
+        REFERENCE_FA, "input/{id}.bam","input/{id}.bam.bai", REFERENCE_FA_FAI, REFERENCE_DICT
+    output: "output/calls/st/{id}.vcf"
+    shell: "samtools mpileup -uf {input[0]} {input[1]} | bcftools view -vcg - > {output}"
+
+rule vc_freebayes:
+    input:
+        REFERENCE_FA, "input/{id}.bam","input/{id}.bam.bai", REFERENCE_FA_FAI, REFERENCE_DICT
+    output: "output/calls/fb/{id}.vcf"
+    shell: "freebayes -f {input[0]} {input[1]} > {output}"
+
+rule vc_haplotypecaller:
+    input:
+        REFERENCE_FA, "input/{id}.bam", "input/{id}.bam.bai", REFERENCE_FA_FAI, REFERENCE_DICT
+    output: "output/calls/hc/{id}.vcf"
+    shell: "java -jar $GATK -R {input[0]} -T HaplotypeCaller -I {input[1]} -o {output}"
+
+rule index_bam:
+    input: "input/{id}.bam"
+    output: "input/{id}.bam.bai"
+    shell: "samtools index {input}"
+
+rule reference_dict:
+    input: REFERENCE_FA
+    output: REFERENCE_DICT
+    shell: "java -jar $PICARD CreateSequenceDictionary R={input} O={output}"
+
+rule reference_index:
+    input: REFERENCE_FA
+    output: REFERENCE_FA_FAI
+    shell: "samtools faidx {input}"

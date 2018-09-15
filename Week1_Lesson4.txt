@@ -1,0 +1,28 @@
+Урок 4 - посвящен созданию образов.
+Существует как минимум 2 способа создания образа - из контейнера и из Docker-файла.
+1) Создание образа из контейнера.
+sudo docker commit image-from-container myimage - на первом месте имя контейнера, на втором - имя образа
+sudo docker history myimage - просматриваем все операции по работе над образом
+sudo docker commit -c 'ENTRYPOINT ["/usr/bin/python3"]' create-image-from-me image-from-container-1 - создаем новый образ с изменениями при помощи флага -c
+
+Полезная команда - удаление всех образов с именем none
+sudo docker rmi $(sudo docker images --filter "dangling=true" -q --no-trunc)
+
+2) Создание образов с использованием файлов со специальным синтаксисом
+В файле содержится набор инструкций
+Создаем файл с именем "Dockerfile" без расширения, в него записываем инструкции:
+# какой образ базовый
+FROM ubuntu:14.04
+
+# Кто ответственнен за поддержку образа
+LABEL maintainer="Anastasia Miroshnikova"
+
+# Change entrypoint
+ENTRYPOINT ["/bin/sh"]
+
+ВНИМАНИЕ! Все файлы, находящиеся в директории с докерфайлом, кэшируются при сборке!
+
+Собираем образ:
+sudo docker build -t image-from-dockerfile . - присваиваем имя тэгом -t и указываем путь 
+
+Проверяющая система 

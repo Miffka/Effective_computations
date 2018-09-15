@@ -1,0 +1,88 @@
+::::::::::::::
+cat.cwl
+::::::::::::::
+class: CommandLineTool
+cwlVersion: v1.0
+
+requirements:
+ - class: InlineJavascriptRequirement
+
+inputs:
+ infile:
+  type: File
+  inputBinding:
+   loadContents: true
+   valueFrom: ''
+
+outputs:
+ outfile:
+  type: File
+  outputBinding:
+   glob: $(inputs.infile.basename)
+
+baseCommand: printf
+arguments: ["Hello $(inputs.infile.contents.trim())!"]
+stdout: $(inputs.infile.basename)
+
+
+::::::::::::::
+get.cwl
+::::::::::::::
+cwlVersion: v1.0
+class: ExpressionTool
+
+requirements:
+ - class: InlineJavascriptRequirement
+
+inputs:
+ inputdir: Directory
+
+outputs:
+ outfiles: 
+  type: File[]
+
+# vertical dash means many strings
+expression: | 
+ ${
+   var samples = [];
+   var re = /^\w/;
+   for (var i = 0; i < inputs.inputdir.listing.length; i++) {
+     var file = inputs.inputdir.listing[i];
+     if (re.test(file.basename)) {
+      samples.push(file);
+     }
+    }
+   return {"outfiles": samples}
+   }
+::::::::::::::
+hello-workflow.cwl
+::::::::::::::
+class: Workflow
+cwlVersion: v1.0
+
+requirements:
+ - class: ScatterFeatureRequirement
+
+inputs:
+ input_dir: Directory
+
+outputs:
+ outdir: 
+  type: File[]
+  outputSource: cat/outfile
+
+steps:
+ get:
+  run: get.cwl
+  in:
+   inputdir: input_dir
+  out:
+   [outfiles]
+ 
+ cat:
+  scatter: infile
+  run: cat.cwl
+  in:
+   infile: get/outfiles
+  out:
+   [outfile]

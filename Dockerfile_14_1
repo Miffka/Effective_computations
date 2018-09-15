@@ -1,0 +1,6 @@
+FROM ubuntu:14.04
+
+LABEL maintainer="Anastasia Miroshnikova"
+
+# Change entrypoint
+ENTRYPOINT ["/bin/sh"]

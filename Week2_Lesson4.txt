@@ -1,0 +1,64 @@
+Создание пайплайнов Snakemake
+
+1) Много входных и выходных файлов
+Как же это сделать?
+Использовать wildcards! Однако их нельзя использовать в заключительном пайплайне. И преподаватель предполагает, что нужно использовать массив названий в явном виде. Это, конечно, чушь собачья.
+
+'''
+rule all:
+    input: ["out/1", "out/2", "out/3", "out/4", "out/5"]
+#    output: ".status"
+#    shell: "touch {output}"
+    output: touch(".status")
+
+rule copy:
+    input: "in/{file}"
+    output: "out/{file}"
+    shell: "cp {input} {output}"
+'''
+
+В документации написано следующее:
+
+'''
+IDS, = glob_wildcards("thedir/{id}.fastq")
+
+#a pseudo-rule that collects the target files
+rule all:
+    input: expand("otherdir/{id}.bam", id=IDS)
+rule:
+    input: "thedir/{id}.fastq"
+    output: "otherdir/{id}.bam"
+    shell: "somecommand {input} {output}"
+
+
+2) Как обращаться со списками файлов, если нельзя использовать wildcards? Используем функции Python!
+
+'''
+def gen(wildcards):
+    return ["out/{}".format(i) for i in range(1,6)]
+
+rule all:
+    input: gen
+
+rule copy:
+    input: "in/{file}"
+    output: "out/{file}"
+    shell: "cp {input} {output}"
+'''
+
+Что пишут на вкладках?
+
+'''
+rule NAME:
+    input: "path/to/inputfile", "path/to/other/inputfile"
+    output: "path/to/outputfile", somename = "path/to/another/outputfile"
+    run:
+        for f in input:
+            ...
+            with open(output[0], "w") as out:
+                 out.write(...)
+        with open(output.somename, "w") as out:
+            out.write(...)
+'''
+
+

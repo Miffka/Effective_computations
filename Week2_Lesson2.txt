@@ -1,0 +1,68 @@
+	Специализированные инструменты для пайплайнинга
+
+Любой пайплайн - это направленный ациклический граф, где файлы - узлы графа, а ребра - процессы анализа, привязанные к тем или иным программным компонентам. Принципиальный вопрос - как передать структуру графа?
+
+Существует два способа это сделать:
+1) явное (эксплицитное) описание графа анализа - например, CWL 
+# выравнивание ридов на референс
+align_input_reads_to_amplicons:
+	run: tmap_align.cwl
+	in: 
+		reference: reference_amplicons
+		reference_type:
+			valueFrom: "amplicons"
+		input_reads: input_reads
+	out: [aligned_reads]
+
+# индексирование
+index_sort_aligned_to_amplicons_reads:
+	run: samtools_sort_index.cwl
+	in:
+		# здесь происходит явное указание 
+		input_reads: align_input_reads_to_amplicons/aligned_reads
+	out: [indexed_sorted_reads]
+
+2) неявное (имплицитное) описание графа анализа - snakemake
+# этот язык оперирует правилами, причем они ставятся в обратном порядке зависимости
+# мы не указываем, что эти процедуры связаны
+rule import_to_database:
+	# наследование файлов указывается в формате файлов
+	input: BASE_PATH+'format/{file}'
+	output: touch(BASE_PATH+'.status/{file}')
+	shell: './utility.py import -v {input} \ -- dbname {DATABASE_NAME}'
+
+rule format:
+	input: BASE_PATH+'vcf/{file}'
+	# здесь формат такой же, как в input для следующей операции
+	output: BASE_PATH+'format/{file}'
+	shell: 'java -jar utils.jar convertvcf -i {input} \ -o {output} -r {REFERENCE}'
+
+Таким образом, мы можем либо описать зависимости между инструментами - это явный подход, либо описать зависимости между данными - это неявный подход.
+
+	Инструменты для пайплайнинга
+Инструменты бывают с GUI и без него, описание структуры графа может быть передано при помощи конструкций языка вроде классов, либо при помощи конфигурационных файлов. 
+Актуальный список инструментов для пайплайна:
+https://github.com/pditommaso/awesome-pipeline
+Инструменты и библиотеки пайплайнинга: 64
+Платформы: 18
+Языки описания пайплайнов: 5
+
+Языки, на которых созданы инструменты пайплайнинга:
+* специализированные инструменты
+-BDS (Big Data Script)
+-CWL (Common Workflow Language)
+-WDL (Workflow Definition Language)
+* языки общего назначения
+-Go
+-Groovy
+-OCaml
+-Perl
+-Python
+-Ruby
+-Scala
+
+Активность в поддержке языков достигла пика в 2015 году.
+
+The NIH (Not Invented Here) - синдром изобретения велосипедов.
+
+

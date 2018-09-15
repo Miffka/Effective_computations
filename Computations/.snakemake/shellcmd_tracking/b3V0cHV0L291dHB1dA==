@@ -1,0 +1,1 @@
+wc -w input/input | cut -d' ' -f1 > output/output

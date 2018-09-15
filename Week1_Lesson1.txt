@@ -1,0 +1,22 @@
+Команды первого урока:
+
+1) стянуть образ и запустить его с параметром
+sudo docker run --rm parseq/hello-docker koRZEWXPssf6NoX/2NEQL31SEoxhFhiH2MIDuh6+4wngfTZW
+
+2) sudo docker images - вывести все образы
+sudo docker ps -a - вывести все контейнеры
+sudo docker rmi parseq/hello-docker - удалить образ
+sudo docker rm <name_of_container> - удалить конейнер
+run - запустить контейнер из образа
+commit - собрать образ из контейнера
+
+3) добавление -it в команду позволяет запускать контейнеры в интерактивном режиме
+sudo docker run --rm -it ubuntu:14.04
+docker run --rm --name stepik-task -it ubuntu:14.04
+
+4) Образ и файловая система в контейнере - это отдельные слои, которые аггрегируются при запуске. Это позволяет фиксировать состояние файловой системы и использовать его для разных контейнеров.
+sudo docker history ubuntu:15.04 - просмотр истории изменений образа
+Слой контейнера предназначет для чтения и записи, а слои образа - только для чтения.
+В layered file systems реализуется принцип "copy on write".
+
+docker rm $(docker ps -a | grep -v "_data" | awk 'NR>1 {print $1}') - удалить все контейнеры, кроме тех, которые оканчиваются на _data

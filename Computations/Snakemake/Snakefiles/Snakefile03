@@ -1,0 +1,11 @@
+FILES, = glob_wildcards("input/{id,\w+}")
+
+rule all:
+#    message: "Rule started"
+    input: expand("output/{id}", id=FILES)
+
+rule edit:
+    input: "input/{id}"
+    output: "output/{id}"
+    shell: 'printf "Hello $(cat {input})!" > {output}'
+

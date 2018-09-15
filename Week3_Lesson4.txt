@@ -1,0 +1,76 @@
+Четвертый урок по CWL - класс Workflow
+
+Реализуем пайплайн, который состоит из двух этапов - отобрать строки, содержащие паттерн, и посчитать количество таких строк.
+
+Заранее опишем оба этапа в виде CommandLineTool:
+
+grep.cwl
+
+class: CommandLineTool
+cwlVersion: v1.0
+
+inputs:
+ pattern:
+  type: string
+ infile: File
+
+outputs:
+ outfile:
+  type: stdout
+
+baseCommand: grep
+
+
+wc.cwl
+
+class: CommandLineTool
+cwlVersion: v1.0
+
+inputs:
+ infile: File
+
+outputs:
+ outfile:
+  type: stdout
+
+baseCommand: [wc, -l]
+
+
+А теперь напишем документ класса Workflow
+
+grep-wc-wf.cwl
+
+class: Workflow
+cwlVersion: v1.0
+
+inputs:
+ pattern: string
+ in_file: File
+
+outputs:
+ out_file:
+  type: File
+  outputSource: count/outfile
+
+steps:
+ grep:
+  run: grep.cwl
+  in:
+   pattern: pattern
+   infile: in_file
+  out:
+   [outfile]
+
+ count:
+  run: wc.cwl
+  in:
+   infile: grep/outfile
+  out:
+   [outfile]
+
+Ключевые слова in и out - входные и выходные параметры для конкретного шага. В рамках шага необходимо описать все параметры, использующиеся утилитой. В качестве выходного параметра указываем название выходного параметра из документа grep.cwl. Для второго шага указываем в качестве входного параметра выходной параметр первого шага - название_шага/название_выходного_параметра (grep/outfile). Результат всего пайплайна указываем в outputSource - из шага count выходной параметр outfile.
+
+
+Можно реализовать функционал обработки массива входных данных. 
+
+Модифицируем наши пайплайн (смотри файлы 09_*). Теперь утилита wc.cwl принимает на вход массив файлов - она так может. И на вход grep-wc-wf теперь тоже подается массив файлов. Для того, чтобы реализовать возможность прохождения по массиву, подключаем ScatterFeatureRequirement. В последнюю очередь модифицируем шаг grep. Утилита сама по себе не может работать с массивом файлов - ей нужно подавать файл за файлом. Чтобы дать ей эти файлы, указываем параметр scatter: infile, то есть говорим "перебери все параметры в массиве и выполнись для каждого файла по отдельности". В качестве выхода для шага grep получается массив файлов.
